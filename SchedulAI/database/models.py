@@ -22,3 +22,6 @@ class FollowUpTask(db.Model):
     event_id = db.Column(db.String(64), db.ForeignKey('event_cache.id'))
     followup_date = db.Column(db.DateTime, nullable=False)
     completed = db.Column(db.Boolean, default=False)
+    
+    
+
