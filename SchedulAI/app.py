@@ -53,6 +53,27 @@ def create_app():
     def followups():
         return render_template('followups.html')
 
+    # Calendar view
+    @app.route('/calendar')
+    def calendar():
+        events = list_events()
+        return render_template('calendar.html', events=events)
+    
+    # Test AI endpoint
+    @app.route('/test-ai')
+    def test_ai():
+        from ai.scheduler_ai import chat, parse_event
+        try:
+            # Test basic chat
+            response = chat("Say hello briefly")
+            
+            # Test event parsing
+            test_event = parse_event("Meeting with John tomorrow at 2 PM for 1 hour")
+            
+            return f"<h1>AI Test Results</h1><h2>Chat Response:</h2><p>{response}</p><h2>Parsed Event:</h2><pre>{test_event}</pre>"
+        except Exception as e:
+            return f"<h1>AI Test Error</h1><p>{str(e)}</p>"
+
     return app
 
 
