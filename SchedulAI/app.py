@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_migrate import Migrate
 from database import db, register_db
-from calendar.calendar_service import list_events
+from calendar_module.calendar_service import list_events, create_event
 from ai.scheduler_ai import schedule_event
 
 
@@ -31,7 +31,7 @@ def create_app():
         if request.method == 'POST':
             user_text = request.form['event_text']
             existing = list_events()
-            result = schedule_event(user_text, existing, calendar_service)
+            result = schedule_event(user_text, existing, create_event)
             # result contains 'event' and 'prep_notes'
             flash('Event scheduled successfully!')
             return redirect(url_for('event_detail', event_id=result['event']['id']))
