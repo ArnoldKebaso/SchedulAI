@@ -1,0 +1,81 @@
+# Meeting Preparation Prompt
+
+You are an AI assistant tasked with generating a concise meeting agenda and preparation notes based on an event summary.
+
+**Input JSON:**
+{
+"summary": "{{EVENT_SUMMARY}}",
+"start": "{{START_ISO}}",
+"end": "{{END_ISO}}"
+}
+Use the summary and times to produce a bullet‑point list in plain text, like:
+Objective: …
+
+Key discussion points: …
+
+Documents to review: …
+
+Suggested next steps: …
+
+Output only the bullet list text.
+
+---
+
+## 2. **ai/scheduler_ai.py**
+```python
+from ai.ollama_client import chat
+import json
+from datetime import datetime, timedelta
+
+# Load prompt templates
+from pathlib import Path
+PROMPTS_DIR = Path(__file__).parent / 'prompts'
+
+
+def parse_event(user_input: str) -> dict:
+    template = (PROMPTS_DIR / 'parse_event.prompt').read_text()
+    prompt = template.replace('{{USER_INPUT}}', user_input)
+    response = chat(prompt)
+    return json.loads(response)
+
+
+def resolve_conflict(requested: dict, existing: list) -> dict:
+    template = (PROMPTS_DIR / 'conflict_res.prompt').read_text()
+    payload = json.dumps(requested) + '\n' + json.dumps(existing)
+    prompt = template.replace('**Requested Event** — with keys "summary", "start", and "end".', '')
+    prompt = f"Input JSON:\n{json.dumps(requested)}\n{json.dumps(existing)}"
+    response = chat(prompt)
+    return json.loads(response)
+
+
+def prepare_meeting(event: dict) -> str:
+    template = (PROMPTS_DIR / 'meeting_prep.prompt').read_text()
+    filled = template.replace('{{EVENT_SUMMARY}}', event['summary'])\
+                     .replace('{{START_ISO}}', event['start'])\
+                     .replace('{{END_ISO}}', event['end'])
+    return chat(filled)
+
+
+# Example orchestration function
+def schedule_event(natural_text: str, existing_events: list, calendar_service) -> dict:
+    # 1. Parse the user request
+    ev = parse_event(natural_text)
+
+    # 2. Check conflicts
+    conflict = [e for e in existing_events if not (
+        ev['end'] <= e['start'] or ev['start'] >= e['end']
+    )]
+    if conflict:
+        suggestion = resolve_conflict(ev, existing_events)
+        ev['start'], ev['end'] = suggestion['suggested_start'], suggestion['suggested_end']
+
+    # 3. Create the event via calendar service
+    created = calendar_service.create_event(ev)
+
+    # 4. Generate meeting prep notes
+    notes = prepare_meeting(ev)
+
+    return {
+        'event': created,
+        'prep_notes': notes
+    }
