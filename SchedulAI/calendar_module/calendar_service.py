@@ -24,6 +24,10 @@ def list_events(time_min=None, time_max=None) -> list:
         print("Warning: Calendar service not available")
         return []
     
+    if not CALENDAR_ID:
+        print("Warning: CALENDAR_ID not configured")
+        return []
+    
     try:
         iso_min = time_min.isoformat() + 'Z' if time_min else None
         iso_max = time_max.isoformat() + 'Z' if time_max else None
@@ -36,6 +40,9 @@ def list_events(time_min=None, time_max=None) -> list:
         ).execute().get('items', [])
     except Exception as e:
         print(f"Error fetching events: {e}")
+        print(f"Calendar ID: {CALENDAR_ID}")
+        print("Hint: For personal Gmail calendars, try using 'primary' as CALENDAR_ID")
+        print("Hint: Make sure the service account has access to the calendar")
         return []
     # Normalize to our dict schema
     return [
@@ -52,6 +59,10 @@ def create_event(event_body: dict) -> dict:
     """Inserts an event into Google Calendar"""
     if service is None:
         print("Warning: Calendar service not available")
+        return {'id': 'dummy-id', 'summary': event_body.get('summary', 'Event')}
+    
+    if not CALENDAR_ID:
+        print("Warning: CALENDAR_ID not configured")
         return {'id': 'dummy-id', 'summary': event_body.get('summary', 'Event')}
     
     try:
@@ -72,4 +83,7 @@ def create_event(event_body: dict) -> dict:
         }
     except Exception as e:
         print(f"Error creating event: {e}")
+        print(f"Calendar ID: {CALENDAR_ID}")
+        print("Hint: For personal Gmail calendars, try using 'primary' as CALENDAR_ID")
+        print("Hint: Make sure the service account has access to the calendar")
         return {'id': 'dummy-id', 'summary': event_body.get('summary', 'Event')}
